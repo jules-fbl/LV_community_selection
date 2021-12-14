@@ -8,6 +8,7 @@ from time import process_time
 
 @jit(nopython=True)
 def compute_factor(gamma):
+    # Compute the factor of symmetry (\kappa in the main text)
     if abs(gamma) > 1.:
         print("gamma>1 or gamma<1 not allowed")
         raise ValueError
@@ -19,9 +20,12 @@ def compute_factor(gamma):
 
 @jit(forceobj=True)
 def gaussian_matrix(S, mean, std, gamma):
+    """Draw a random interaction matrix of given mean,
+    std and symmetric correlation gamma.
+    gamma=1 for symmetric matrix, -1 for skew-symm """
     M = rd.normal(size=(S, S))
     factor = compute_factor(gamma)
-    A = (M + factor*M.T)/sqrt(1+factor**2)  # symmetry correlation = gamma
+    A = (M + factor*M.T)/sqrt(1+factor**2)
     alpha = mean+std*A
     np.fill_diagonal(alpha, 0)  # null diagonal
     return alpha
@@ -33,8 +37,10 @@ def der_LV(t, Ns, rs, Ks, alpha):  # derivative from Lotka-Volterra equation
 
 @jit(nopython=True)
 def LV_logit(N_init, rs, Ks, alpha, S, t_max, dt):
-    # Integration scheme equivalent to Euler for small dt
-    # but ensure positivity and smoothness
+    """Integrate the LV over a time t_max, for S species with initial
+    conditions N_init, with given growth rates rs,
+    carrying capacities Ks and interaction matrix alpha. The integration scheme
+    is the one presented in the SI and the time-step is dt"""
     n_time = int(t_max/dt)
     ts = np.linspace(0, t_max, n_time)
     Ns = N_init.copy()
@@ -89,7 +95,7 @@ class Community():
     @jit(forceobj=True)
     def integrate_LV(self, t_max, method='logit'):
         if method == 'logit':  # Integrate LV with own method
-            dt = 0.5  # a mettre autre part
+            dt = 0.5
             return LV_logit(self.Ns, self.rs, self.Ks, self.alpha,
                             self.S, t_max, dt)
         else:
@@ -109,6 +115,7 @@ class Community():
 
     @jit(forceobj=True)
     def mutate(self, epsilon):
+        """Mutations of the interaction matrix, as in the main text"""
         tri_ind = np.triu_indices(self.S, 1)
         mean, std = np.mean(self.alpha[tri_ind]), np.std(self.alpha[tri_ind])
         beta = (self.alpha-mean)/std  # reduced matrix with mean=0 and std=1
@@ -120,6 +127,7 @@ class Community():
 
     @jit(forceobj=True)
     def mutate_no_ms(self, epsilon):
+        """Mutations with fixed empirical mean and variance"""
         mean, std = self.mu_init/self.S, self.sigma_init/np.sqrt(self.S)
         beta = (self.alpha-mean)/std  # reduced matrix with mean=0 and std=1
         eta = gaussian_matrix(self.S, 0, 1, self.gamma)  # variations
@@ -185,5 +193,5 @@ class Metacommunity():
     def mutate_all(self, epsilon):
         return [comm.mutate(epsilon) for comm in self.comm_list]
 
-    def has_exploded(self):
+    def has_exploded(self):  # check for divergence
         return np.max([np.max(comm.Ns) for comm in self.comm_list]) > 10**3

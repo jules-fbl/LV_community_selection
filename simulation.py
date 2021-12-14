@@ -9,7 +9,7 @@ from time import process_time
 from tqdm import tqdm
 
 # The differents scores function.
-# ws is always a parameter but used only for L.Cnz
+# ws is always a parameter but sometime unused
 
 
 def print_status(i, n, mem_init):
@@ -97,6 +97,8 @@ def get_eig(alpha, S):
 
 
 class Dataset():
+    """Object to measure and stock the data during evolution."""
+
     def __init__(self, data_to_get, S, ws, Ks):
         self.data_to_get = data_to_get
         self.S = S
@@ -175,7 +177,6 @@ class Dataset():
             eta_star = eta[np.ix_(ind_pos, ind_pos)]
             u = chi.T@(self.ws[ind_pos])
             v = chi@np.ones(len(ind_pos))
-            # v= N_star
             self.eta_dir.append((u@eta_star@v /
                                  np.sqrt(np.sum(u**2)*np.sum(v**2))).copy())
         else:
@@ -266,6 +267,8 @@ class Simu_artificial_select():
         self.tLVs = []  # for debug only
 
     def run(self):
+        """ Main function that perform the simulation protocol
+        preseneted in the Main text."""
         if self.runned:
             print("Simulation already runned !")
             raise ValueError
@@ -274,7 +277,7 @@ class Simu_artificial_select():
         t_measure = 0
         t_select = 0
         self.dataset.measure_init(self.metacomm)
-        for i in tqdm(range(self.n_gen)):
+        for i in tqdm(range(self.n_gen)):  # Main loop over the generations
             if (i*10) % self.n_gen == 0:
                 print_status(i, self.n_gen, self.mem_init)
             if i == 0:

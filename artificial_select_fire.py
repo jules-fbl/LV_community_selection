@@ -21,6 +21,7 @@ def run_simu(n_comm=9, S=100, gamma=0, N_min=10**(-20), immig=False, mu=3,
                    'coeff_abcd': (score_func_name == 'random_combination'),
                    'alpha_init_last': alpha_il}
 
+    # choose if over-write of the data (if already done with same parameters)
     over_write = True
 
     # create directory to save data
@@ -48,6 +49,7 @@ def run_simu(n_comm=9, S=100, gamma=0, N_min=10**(-20), immig=False, mu=3,
         dir += '_fixms'
     dir += '/'
 
+    # check if the dir already exist
     try:
         os.mkdir(dir)
     except Exception:
